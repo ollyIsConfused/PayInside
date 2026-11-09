@@ -1,0 +1,73 @@
+# Produktion auf einem eigenen Server (z. B. Hetzner CX22, ca. 5 €/Monat):
+#   cp .env.production.example .env   → Werte eintragen
+#   docker compose up -d --build
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: payinside
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD in .env setzen}
+      POSTGRES_DB: payinside
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U payinside"]
+      interval: 10s
+      retries: 10
+
+  app:
+    build: ./server
+    restart: unless-stopped
+    env_file: .env
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://payinside:${POSTGRES_PASSWORD}@db:5432/payinside
+      PUBLIC_URL: https://${DOMAIN}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Automatisches HTTPS-Zertifikat (Let's Encrypt) für deine Domain
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?DOMAIN in .env setzen}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+  # Tägliches Datenbank-Backup nach ./backups, ältere als 14 Tage werden entfernt. Zusätzlich extern sichern!
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./backups:/backups
+    entrypoint: >
+      sh -c 'while true; do
+        pg_dump -h db -U payinside payinside | gzip > /backups/payinside-$$(date +%F).sql.gz;
+        find /backups -name "payinside-*.sql.gz" -mtime +14 -delete;
+        sleep 86400;
+      done'
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  dbdata:
+  caddy_data:
+  caddy_config:

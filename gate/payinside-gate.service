@@ -1,0 +1,14 @@
+[Unit]
+Description=Pay Inside Schranke
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+EnvironmentFile=/etc/payinside-gate.env
+ExecStart=/opt/payinside-gate/venv/bin/python /opt/payinside-gate/gate.py --input ${GATE_INPUT}
+Restart=always
+RestartSec=3
+User=root
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,7 @@
+# Für die Offline-Prüfung der Signatur
+cryptography>=42
+# Nur auf dem Raspberry Pi nötig:
+gpiozero>=2.0 ; platform_machine == "aarch64" or platform_machine == "armv7l"
+# Je nach Scanner-Modus:
+pyserial>=3.5
+evdev>=1.7 ; sys_platform == "linux"

@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+backups/
+*.log
+.DS_Store
+ios/PayInside.xcodeproj/
+ios/App/Info.plist
+ios/App/PayInside.entitlements
+ios/build/
+xcuserdata/
+__pycache__/

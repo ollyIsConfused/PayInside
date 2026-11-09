@@ -1,0 +1,82 @@
+# Xcode-Projekt wird aus dieser Datei erzeugt:  brew install xcodegen && cd ios && xcodegen
+# Vorher setzen (oder unten eintragen):  export APPLE_TEAM_ID=DEINE_TEAM_ID
+name: PayInside
+options:
+  bundleIdPrefix: de.payinside
+  deploymentTarget:
+    iOS: "17.0"
+  developmentLanguage: de
+  createIntermediateGroups: true
+
+settings:
+  base:
+    DEVELOPMENT_TEAM: ${APPLE_TEAM_ID}
+    CODE_SIGN_STYLE: Automatic
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.0"
+    # Deine Domain (ohne https://). Wird für API und Universal Links genutzt.
+    PI_DOMAIN: payinside.de
+    PI_API_BASE_URL: https://$(PI_DOMAIN)
+    PI_APPLE_PAY_MERCHANT_ID: merchant.de.payinside
+    TARGETED_DEVICE_FAMILY: "1"
+  configs:
+    Debug:
+      # Simulator spricht mit dem Server auf deinem Mac. Für ein echtes iPhone: IP deines Macs eintragen
+      # (z. B. http://192.168.178.20:3000) oder in der App unter Einstellungen ändern.
+      PI_API_BASE_URL: http://localhost:3000
+
+packages:
+  Stripe:
+    url: https://github.com/stripe/stripe-ios-spm
+    from: "24.0.0"
+
+targets:
+  PayInside:
+    type: application
+    platform: iOS
+    sources:
+      - Shared
+      - App
+    dependencies:
+      - package: Stripe
+        product: StripePaymentSheet
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: Pay Inside
+        LSApplicationCategoryType: public.app-category.shopping
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        NSCameraUsageDescription: Die Kamera wird zum Scannen von Barcodes und QR-Codes im Laden benötigt.
+        PIAPIBaseURL: $(PI_API_BASE_URL)
+        PIApplePayMerchantID: $(PI_APPLE_PAY_MERCHANT_ID)
+        CFBundleURLTypes:
+          - CFBundleURLName: de.payinside.app
+            CFBundleURLSchemes: [payinside]
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+        ITSAppUsesNonExemptEncryption: false
+    entitlements:
+      path: App/PayInside.entitlements
+      properties:
+        com.apple.developer.associated-domains:
+          - applinks:$(PI_DOMAIN)
+        com.apple.developer.in-app-payments:
+          - $(PI_APPLE_PAY_MERCHANT_ID)
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: de.payinside.app
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+
+
+schemes:
+  PayInside:
+    build:
+      targets:
+        PayInside: all
+    run:
+      config: Debug
+    archive:
+      config: Release
